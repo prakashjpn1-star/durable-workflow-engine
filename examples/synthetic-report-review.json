@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "name": "synthetic-report-review",
+  "nodes": [
+    {
+      "id": "validate",
+      "kind": "worker",
+      "handler": "validate-dataset",
+      "handlerVersion": 1,
+      "dependsOn": [],
+      "input": {
+        "fixtureId": {
+          "runInput": "/fixtureId"
+        }
+      },
+      "timeoutSeconds": 30,
+      "retry": {
+        "maxAttempts": 3,
+        "initialDelaySeconds": 1,
+        "multiplier": 2,
+        "maxDelaySeconds": 10
+      }
+    },
+    {
+      "id": "normalize",
+      "kind": "worker",
+      "handler": "normalize-dataset",
+      "handlerVersion": 1,
+      "dependsOn": [
+        "validate"
+      ],
+      "input": {
+        "validRowsArtifactId": {
+          "nodeOutput": "validate",
+          "pointer": "/validRowsArtifactId"
+        }
+      },
+      "timeoutSeconds": 30,
+      "retry": {
+        "maxAttempts": 3,
+        "initialDelaySeconds": 1,
+        "multiplier": 2,
+        "maxDelaySeconds": 10
+      }
+    },
+    {
+      "id": "statistics",
+      "kind": "worker",
+      "handler": "calculate-statistics",
+      "handlerVersion": 1,
+      "dependsOn": [
+        "normalize"
+      ],
+      "input": {
+        "normalizedArtifactId": {
+          "nodeOutput": "normalize",
+          "pointer": "/normalizedArtifactId"
+        }
+      },
+      "timeoutSeconds": 30,
+      "retry": {
+        "maxAttempts": 3,
+        "initialDelaySeconds": 1,
+        "multiplier": 2,
+        "maxDelaySeconds": 10
+      }
+    },
+    {
+      "id": "quality",
+      "kind": "worker",
+      "handler": "build-quality-report",
+      "handlerVersion": 1,
+      "dependsOn": [
+        "normalize"
+      ],
+      "input": {
+        "normalizedArtifactId": {
+          "nodeOutput": "normalize",
+          "pointer": "/normalizedArtifactId"
+        },
+        "rejectionsArtifactId": {
+          "nodeOutput": "validate",
+          "pointer": "/rejectionsArtifactId"
+        }
+      },
+      "timeoutSeconds": 30,
+      "retry": {
+        "maxAttempts": 3,
+        "initialDelaySeconds": 1,
+        "multiplier": 2,
+        "maxDelaySeconds": 10
+      }
+    },
+    {
+      "id": "review-delay",
+      "kind": "timer",
+      "dependsOn": [
+        "statistics",
+        "quality"
+      ],
+      "durationSeconds": 2
+    },
+    {
+      "id": "review",
+      "kind": "approval",
+      "dependsOn": [
+        "review-delay"
+      ],
+      "reviewerRole": "reviewer",
+      "decisionTimeoutSeconds": 3600,
+      "input": {
+        "reportArtifactId": {
+          "nodeOutput": "quality",
+          "pointer": "/reportArtifactId"
+        },
+        "reportDigest": {
+          "nodeOutput": "quality",
+          "pointer": "/reportDigest"
+        },
+        "statisticsArtifactId": {
+          "nodeOutput": "statistics",
+          "pointer": "/statisticsArtifactId"
+        },
+        "statisticsDigest": {
+          "nodeOutput": "statistics",
+          "pointer": "/statisticsDigest"
+        }
+      }
+    },
+    {
+      "id": "publish",
+      "kind": "worker",
+      "handler": "persist-approved-report",
+      "handlerVersion": 1,
+      "dependsOn": [
+        "review"
+      ],
+      "input": {
+        "approval": {
+          "nodeOutput": "review",
+          "pointer": ""
+        }
+      },
+      "timeoutSeconds": 30,
+      "retry": {
+        "maxAttempts": 3,
+        "initialDelaySeconds": 1,
+        "multiplier": 2,
+        "maxDelaySeconds": 10
+      }
+    }
+  ]
+}

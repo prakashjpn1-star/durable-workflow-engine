@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/prakashjpn1-star/durable-workflow-engine/workflow.schema.json",
+  "title": "Release 1 durable workflow definition",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "name",
+    "nodes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "dependsOn",
+              "handler",
+              "handlerVersion",
+              "input",
+              "timeoutSeconds",
+              "retry"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,63}$"
+              },
+              "kind": {
+                "const": "worker"
+              },
+              "dependsOn": {
+                "type": "array",
+                "uniqueItems": true,
+                "maxItems": 99,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,63}$"
+                }
+              },
+              "input": {
+                "type": "object",
+                "maxProperties": 100,
+                "additionalProperties": {
+                  "$ref": "#/$defs/binding"
+                }
+              },
+              "handler": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,63}$"
+              },
+              "handlerVersion": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "timeoutSeconds": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 604800
+              },
+              "retry": {
+                "$ref": "#/$defs/retry"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "dependsOn",
+              "durationSeconds"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,63}$"
+              },
+              "kind": {
+                "const": "timer"
+              },
+              "dependsOn": {
+                "type": "array",
+                "uniqueItems": true,
+                "maxItems": 99,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,63}$"
+                }
+              },
+              "input": {
+                "type": "object",
+                "maxProperties": 100,
+                "additionalProperties": {
+                  "$ref": "#/$defs/binding"
+                }
+              },
+              "durationSeconds": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 604800
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "dependsOn",
+              "input",
+              "reviewerRole",
+              "decisionTimeoutSeconds"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,63}$"
+              },
+              "kind": {
+                "const": "approval"
+              },
+              "dependsOn": {
+                "type": "array",
+                "uniqueItems": true,
+                "maxItems": 99,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,63}$"
+                }
+              },
+              "input": {
+                "type": "object",
+                "maxProperties": 100,
+                "additionalProperties": {
+                  "$ref": "#/$defs/binding"
+                }
+              },
+              "reviewerRole": {
+                "const": "reviewer"
+              },
+              "decisionTimeoutSeconds": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 604800
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "binding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "literal"
+          ],
+          "properties": {
+            "literal": {}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "runInput"
+          ],
+          "properties": {
+            "runInput": {
+              "type": "string",
+              "pattern": "^(|/.*)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "nodeOutput",
+            "pointer"
+          ],
+          "properties": {
+            "nodeOutput": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,63}$"
+            },
+            "pointer": {
+              "type": "string",
+              "pattern": "^(|/.*)$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "retry": {
+      "type": "object",
+      "required": [
+        "maxAttempts",
+        "initialDelaySeconds",
+        "multiplier",
+        "maxDelaySeconds"
+      ],
+      "properties": {
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "initialDelaySeconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "multiplier": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "maxDelaySeconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 86400
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$comment": "Semantic validation additionally checks encoded bytes, edge limit, unique node IDs, DAG, ancestor references, registry contracts and effective run deadlines."
+}

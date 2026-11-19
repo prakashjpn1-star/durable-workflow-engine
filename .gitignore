@@ -1,0 +1,17 @@
+# Runtime data and disposable credentials never belong in the repository.
+.venv/
+__pycache__/
+node_modules/
+.env
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+runtime/
+test-results/
+coverage/
+playwright-report/
+.DS_Store
+Thumbs.db
